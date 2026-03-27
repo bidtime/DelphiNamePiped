@@ -1,1 +1,3 @@
 The function of this project is to use the name piped implemented by delphi, which is encapsulated with dll. The source code comes from https://github.com/LauraRozier/TBU-Named-Pipe.git.
+Later, I found that there was a problem with using it under win64, so I learned from another project, https://github.com/marsupilami79/DelphiPipes.git, which fixes a bug that cannot respond to connection events when used in the win64 environment.
+Now in win64, the work is normal. Congratulations.

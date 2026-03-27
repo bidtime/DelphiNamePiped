@@ -13,6 +13,7 @@ library TBUNamedPipe;
 uses
   System.SysUtils,
   System.Classes,
+  Pipes in 'src\Components\Pipes.pas',
   TBUNP_ServerPipe in 'src\TBUNP_ServerPipe.pas',
   TBUNP_Exports in 'src\TBUNP_Exports.pas',
   TBUNP_ClientPipe in 'src\TBUNP_ClientPipe.pas',

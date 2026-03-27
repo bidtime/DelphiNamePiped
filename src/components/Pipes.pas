@@ -8,7 +8,6 @@ Description:  Pipe components by Russell Libby
 Version:      1.01
 History:      See below in the original comments
 
-
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *}
 unit Pipes;
 
@@ -125,6 +124,9 @@ interface
 {$IFNDEF DELPHI_XE2_ABOVE}
   {$DEFINE CPUX86}
 {$ENDIF}
+{$IF RTLVERSION <= 34} // Delphi 10.4 Sydney and below
+  {$DEFINE MEMORYSTREAM_REALLOC_USES_LONGINT}
+{$IFEND}
 
 {$WARN SYMBOL_PLATFORM OFF}        // TThreadPriority is specific to Windows
 
@@ -153,9 +155,9 @@ resourcestring
     resConClass = 'ConsoleWindowClass';
     resComSpec = 'ComSpec';
 
-////////////////////////////////////////////////////////////////////////////////
-// Min, max and default constants
-////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    // Min, max and default constants
+    ////////////////////////////////////////////////////////////////////////////////
 const
     MAX_NAME        = 256;
     MAX_WAIT        = 1000;
@@ -187,7 +189,6 @@ const
     MB_START  = $424D5453; // STMB
     MB_END    = $424D5445; // ETMB
     MB_PREFIX = 'PMM';
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Pipe window message constants
@@ -432,7 +433,7 @@ type
     TFastMemStream = class(TMemoryStream)
     protected
         // Protected declarations
-        function Realloc(var NewCapacity : Longint) : Pointer; override;
+        function Realloc(var NewCapacity : {$IFDEF MEMORYSTREAM_REALLOC_USES_LONGINT}Longint{$ELSE}NativeInt{$ENDIF}) : Pointer; override;
     end;
 
     // Multipacket message handler
@@ -601,6 +602,7 @@ type
         FKillEv        : THandle;
         FSA            : TSecurityAttributes;
         FOPE           : TOnPipeError;
+        FOPC           : TOnPipeConnect;
         FOPD           : TOnPipeDisconnect;
         FOPM           : TOnPipeMessage;
         FOPS           : TOnPipeSent;
@@ -633,6 +635,7 @@ type
         property MemoryThrottle : LongWord read FThrottle write FThrottle;
         property PipeName       : string read FPipeName write SetPipeName;
         property ServerName     : string read FServerName write SetServerName;
+        property OnPipeConnect    : TOnPipeConnect read FOPC write FOPC;
         property OnPipeDisconnect : TOnPipeDisconnect read FOPD write FOPD;
         property OnPipeMessage : TOnPipeMessage read FOPM write FOPM;
         property OnPipeSent    : TOnPipeSent read FOPS write FOPS;
@@ -766,7 +769,6 @@ procedure DeallocateHWnd(Wnd : HWND);
 procedure FreeObjectInstance(ObjectInstance : Pointer);
 function MakeObjectInstance(Method : TWndMethod) : Pointer;
 
-
 implementation
 
 {$IFNDEF DELPHI_XE2_ABOVE}
@@ -786,6 +788,10 @@ type
             0 : (Next : PObjectInstance);
             1 : (Method : TWndMethod);
     end;
+
+    {$IF NOT DECLARED(LPARAM)}
+    LPARAM = Longint;
+    {$ENDIF}
 
 const
   {$IFDEF CPUX86}
@@ -852,7 +858,6 @@ begin
     Priority        := tpLower;
 end;
 
-
 destructor TPipeConsoleThread.Destroy;
 begin
     // Resource protection
@@ -866,7 +871,6 @@ begin
         inherited Destroy;
     end;
 end;
-
 
 procedure TPipeConsoleThread.Execute;
 var
@@ -901,7 +905,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsoleThread.ProcessPipes;
 begin
     // Process the output pipe
@@ -910,7 +913,6 @@ begin
     // Process the error pipe
     ProcessPipe(FError, WM_PIPE_CON_ERR);
 end;
-
 
 procedure TPipeConsoleThread.ProcessPipe(Handle : THandle; AMsg : UINT);
 var
@@ -943,7 +945,6 @@ begin
     end;
 end;
 
-
 function TPipeConsoleThread.SafeSendMessage(AMsg : UINT;
     AWParam : WPARAM; ALParam : LPARAM) : LRESULT;
 begin
@@ -959,7 +960,6 @@ end;
 ////////////////////////////////////////////////////////////////////////////////
 // TPipeConsole
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TPipeConsole.Create(AOwner : TComponent);
 begin
@@ -981,13 +981,11 @@ begin
     FWorker   := nil;
 end;
 
-
 constructor TPipeConsole.CreateUnowned;
 begin
     // Perform create with no owner
     Create(nil);
 end;
-
 
 destructor TPipeConsole.Destroy;
 begin
@@ -1003,7 +1001,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.SetLastErr(Value : Integer);
 begin
     // Resource protection
@@ -1015,7 +1012,6 @@ begin
         FLastErr := Value;
     end;
 end;
-
 
 function TPipeConsole.ComSpec : string;
 begin
@@ -1032,7 +1028,6 @@ begin
         FLastErr := GetLastError;
     end;
 end;
-
 
 function TPipeConsole.OpenStdPipes : Boolean;
 var
@@ -1083,7 +1078,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.CloseStdPipes;
 var
     dwIndex : Integer;
@@ -1097,14 +1091,12 @@ begin
     end;
 end;
 
-
 function TPipeConsole.GetRunning : Boolean;
 begin
     // Check process information
     Result := (IsHandle(FPI.hProcess) and (WaitForSingleObject(FPI.hProcess,
         0) = WAIT_TIMEOUT));
 end;
-
 
 procedure TPipeConsole.SendCtrlBreak;
 begin
@@ -1113,14 +1105,12 @@ begin
         ExecConsoleEvent(FPI.hProcess, CTRL_BREAK_EVENT);
 end;
 
-
 procedure TPipeConsole.SendCtrlC;
 begin
     // Make sure the process is running, then inject and exec
     if GetRunning then
         ExecConsoleEvent(FPI.hProcess, CTRL_C_EVENT);
 end;
-
 
 procedure TPipeConsole.Write(const Buffer; Length : Integer);
 var
@@ -1132,7 +1122,6 @@ begin
         WriteFile(FWrite[STD_PIPE_INPUT], Buffer, Length, dwWrite, nil);
     end;
 end;
-
 
 function TPipeConsole.GetConsoleHandle : HWND;
 var
@@ -1159,7 +1148,6 @@ begin
     end;
 end;
 
-
 function TPipeConsole.GetVisible : Boolean;
 var
     hwndCon : HWND;
@@ -1182,7 +1170,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.ForcePriority(Value : TThreadPriority);
 const
     Priorities : array [TThreadPriority] of Integer = (THREAD_PRIORITY_IDLE,
@@ -1203,14 +1190,12 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.SetPriority(Value : TThreadPriority);
 begin
     // Check against current value
     if (FPriority <> Value) then
         ForcePriority(Value);
 end;
-
 
 procedure TPipeConsole.SetVisible(Value : Boolean);
 var
@@ -1239,7 +1224,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.WndMethod(var Message : TMessage);
 begin
     // Handle the pipe messages
@@ -1261,7 +1245,6 @@ begin
             message.lParam);
     end;
 end;
-
 
 procedure TPipeConsole.RemoveWorkerThread(Sender : TObject);
 var
@@ -1290,7 +1273,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.ProcessPipe(Handle : THandle; Stream : TStream);
 var
     lpszBuffer : PChar;
@@ -1316,7 +1298,6 @@ begin
         end;
     end;
 end;
-
 
 function TPipeConsole.SynchronousRun(OutputStream, ErrorStream : TStream;
     TimeOut : DWORD) : DWORD;
@@ -1365,7 +1346,6 @@ begin
         Result := FLastErr;
     end;
 end;
-
 
 function TPipeConsole.Execute(Application, CommandLine : string;
     OutputStream, ErrorStream : TStream; TimeOut : DWORD = INFINITE) : DWORD;
@@ -1449,7 +1429,6 @@ begin
     end;
 end;
 
-
 function TPipeConsole.Start(Application, CommandLine : string) : Boolean;
 begin
     // Both params cannot be null
@@ -1528,7 +1507,6 @@ begin
     end;
 end;
 
-
 procedure TPipeConsole.Stop(ExitValue : DWORD);
 begin
     // Check to see if still running
@@ -1571,7 +1549,6 @@ end;
 // TPipeClient
 ////////////////////////////////////////////////////////////////////////////////
 
-
 constructor TPipeClient.Create(AOwner : TComponent);
 begin
     // Perform inherited
@@ -1591,13 +1568,11 @@ begin
     FHwnd          := AllocateHWnd(WndMethod);
 end;
 
-
 constructor TPipeClient.CreateUnowned;
 begin
     // Perform create with no owner
     Create(nil);
 end;
-
 
 destructor TPipeClient.Destroy;
 begin
@@ -1619,7 +1594,6 @@ begin
     end;
 end;
 
-
 function TPipeClient.GetConnected : Boolean;
 var
     dwExit : DWORD;
@@ -1633,7 +1607,6 @@ begin
         // Not connected
         Result := FALSE;
 end;
-
 
 function TPipeClient.Connect(WaitTime : DWORD = NMPWAIT_USE_DEFAULT_WAIT;
     Start : Boolean = TRUE) : Boolean;
@@ -1725,7 +1698,6 @@ begin
     end;
 end;
 
-
 procedure TPipeClient.Disconnect;
 begin
     // Check connected state
@@ -1768,7 +1740,6 @@ begin
         CloseHandleClear(FPipe);
 end;
 
-
 procedure TPipeClient.FlushPipeBuffers;
 var
     hEvent : THandle;
@@ -1792,7 +1763,6 @@ begin
         end;
     end;
 end;
-
 
 function TPipeClient.WaitForReply(TimeOut : Cardinal = INFINITE) : Boolean;
 var
@@ -1829,7 +1799,6 @@ begin
         Result := FReply;
     end;
 end;
-
 
 function TPipeClient.SendStream(Stream : TStream) : Boolean;
 var
@@ -1882,7 +1851,6 @@ begin
         Result := FALSE;
 end;
 
-
 function TPipeClient.Write(var Prefix; PrefixCount : Integer; var Buffer;
     Count : Integer) : Boolean;
 begin
@@ -1908,7 +1876,6 @@ begin
         Result := FALSE;
 end;
 
-
 function TPipeClient.Write(var Buffer; Count : Integer) : Boolean;
 begin
     // Check for memory throttling
@@ -1932,7 +1899,6 @@ begin
         Result := FALSE;
 end;
 
-
 procedure TPipeClient.SetPipeName(Value : string);
 begin
     // Check connected state and pipe handle
@@ -1947,7 +1913,6 @@ begin
     end;
 end;
 
-
 procedure TPipeClient.SetServerName(Value : string);
 begin
     // Check connected state and pipe handle
@@ -1959,7 +1924,6 @@ begin
         FServerName := Value;
 end;
 
-
 procedure TPipeClient.RemoveWorkerThread(Sender : TObject);
 begin
     // Set thread variable to nil
@@ -1967,19 +1931,16 @@ begin
 
     // Resource protection
     try
+        // Notify of disconnect
+        if (not(csDestroying in ComponentState) and Assigned(FOPD)) then
+            FOPD(Self, FPipe);
         // Clear the write queue
         FWriteQueue.Clear;
-
-        // Notify of disconnect
-        if (not(csDestroying in ComponentState) and Assigned(FOPD) and
-            not FDisconnecting) then
-            FOPD(Self, FPipe);
     finally
         // Invalidate handle
         FPipe := INVALID_HANDLE_VALUE;
     end;
 end;
-
 
 procedure TPipeClient.WndMethod(var AMsg : TMessage);
 begin
@@ -1989,6 +1950,10 @@ begin
         WM_PIPEERROR_W :
             if Assigned(FOPE) then
                 FOPE(Self, AMsg.wParam, pcWorker, AMsg.lParam);
+        // Pipe connected
+        WM_PIPECONNECT :
+            if Assigned(FOPC) then
+                FOPC(Self, AMsg.wParam);
         // Pipe data sent
         WM_PIPESEND :
             if Assigned(FOPS) then
@@ -2019,7 +1984,6 @@ end;
 // TPipeServer
 ////////////////////////////////////////////////////////////////////////////////
 
-
 constructor TPipeServer.Create(AOwner : TComponent);
 begin
     // Perform inherited
@@ -2041,13 +2005,11 @@ begin
     FListener    := nil;
 end;
 
-
 constructor TPipeServer.CreateUnowned;
 begin
     // Perform inherited create with no owner
     Create(nil);
 end;
-
 
 destructor TPipeServer.Destroy;
 begin
@@ -2070,7 +2032,6 @@ begin
         inherited Destroy;
     end;
 end;
-
 
 procedure TPipeServer.WndMethod(var Message : TMessage);
 begin
@@ -2109,7 +2070,6 @@ begin
     end;
 end;
 
-
 function TPipeServer.GetClientInfo(Pipe : HPIPE; out PipeInfo : PPipeInfo)
     : Boolean;
 var
@@ -2136,20 +2096,17 @@ begin
     end;
 end;
 
-
 function TPipeServer.GetClient(Index : Integer) : HPIPE;
 begin
     // Return the requested pipe
     Result := PPipeInfo(FClients[index])^.Pipe;
 end;
 
-
 function TPipeServer.GetClientCount : Integer;
 begin
     // Return the number of client pipes
     Result := FClients.Count;
 end;
-
 
 function TPipeServer.Broadcast(var Buffer; Count : Integer) : Boolean;
 var
@@ -2176,7 +2133,6 @@ begin
         Result := (dwCount = FClients.Count);
     end;
 end;
-
 
 function TPipeServer.Broadcast(var Prefix; PrefixCount : Integer; var Buffer;
     Count : Integer) : Boolean;
@@ -2205,7 +2161,6 @@ begin
     end;
 end;
 
-
 function TPipeServer.Write(Pipe : HPIPE; var Prefix; PrefixCount : Integer;
     var Buffer; Count : Integer) : Boolean;
 var
@@ -2224,7 +2179,6 @@ begin
         Result := FALSE;
 end;
 
-
 function TPipeServer.Write(Pipe : HPIPE; var Buffer; Count : Integer) : Boolean;
 var
     ppiClient : PPipeInfo;
@@ -2240,7 +2194,6 @@ begin
         // No client info
         Result := FALSE;
 end;
-
 
 function TPipeServer.SendStream(Pipe : HPIPE; Stream : TStream) : Boolean;
 var
@@ -2290,7 +2243,6 @@ begin
         Result := FALSE;
 end;
 
-
 procedure TPipeServer.RemoveClient(Pipe : HPIPE);
 var
     ppiClient : PPipeInfo;
@@ -2319,7 +2271,6 @@ begin
     end;
 end;
 
-
 function TPipeServer.Disconnect(Pipe : HPIPE) : Boolean;
 var
     ppiClient : PPipeInfo;
@@ -2345,7 +2296,6 @@ begin
         Result := FALSE;
 end;
 
-
 procedure TPipeServer.Loaded;
 begin
     // Perform inherited
@@ -2354,7 +2304,6 @@ begin
     // Set deferred active state
     SetActive(FDeferActive);
 end;
-
 
 procedure TPipeServer.SetActive(Value : Boolean);
 begin
@@ -2379,7 +2328,6 @@ begin
     end;
 end;
 
-
 procedure TPipeServer.SetPipeName(Value : string);
 begin
     // Check for change
@@ -2396,7 +2344,6 @@ begin
         end;
     end;
 end;
-
 
 function TPipeServer.AllocPipeInfo(Pipe : HPIPE) : PPipeInfo;
 begin
@@ -2416,7 +2363,6 @@ begin
         FClients.Add(Result);
     end;
 end;
-
 
 procedure TPipeServer.AddWorkerThread(Pipe : HPIPE);
 var
@@ -2452,13 +2398,11 @@ begin
     end;
 end;
 
-
 procedure TPipeServer.RemoveWorkerThread(Sender : TObject);
 begin
     // Remove the pipe info record associated with this thread
     RemoveClient(TPipeThread(Sender).Pipe);
 end;
-
 
 procedure TPipeServer.RemoveListenerThread(Sender : TObject);
 begin
@@ -2469,7 +2413,6 @@ begin
     if (not(FInShutDown) and (FThreadCount.Count = 1)) then
         FActive := FALSE;
 end;
-
 
 procedure TPipeServer.DoStartup;
 begin
@@ -2493,13 +2436,12 @@ begin
             // Free the listener thread
             FreeAndNil(FListener);
             // Re-raise the exception
-            raise;
+            //raise;
         end;
         // Set active state
         FActive := TRUE;
     end;
 end;
-
 
 procedure TPipeServer.DoShutdown;
 begin
@@ -2534,11 +2476,9 @@ begin
     end;
 end;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TPipeThread
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TPipeThread.Create(Server : Boolean; NotifyWindow : HWND;
     NotifyThread : THandle; WriteQueue : TWriteQueue; Counter : TThreadCounter;
@@ -2585,7 +2525,6 @@ begin
     Priority        := tpLower;
 end;
 
-
 destructor TPipeThread.Destroy;
 begin
     // Resource protection
@@ -2609,7 +2548,6 @@ begin
     end;
 end;
 
-
 function TPipeThread.SafeSendMessage(AMsg : UINT; AWParam : WPARAM;
     ALParam : LPARAM): LRESULT;
 begin
@@ -2621,7 +2559,6 @@ begin
         // Failure
         Result := 0;
 end;
-
 
 function TPipeThread.QueuedRead : Boolean;
 begin
@@ -2690,7 +2627,6 @@ begin
     end;
 end;
 
-
 function TPipeThread.CompleteRead : Boolean;
 begin
     // Reset the read event and pending flag
@@ -2754,7 +2690,6 @@ begin
     end;
 end;
 
-
 function TPipeThread.QueuedWrite : Boolean;
 var
     bWrite : Boolean;
@@ -2807,7 +2742,6 @@ begin
     end;
 end;
 
-
 function TPipeThread.CompleteWrite : Boolean;
 begin
     // Reset the write event and pending flag
@@ -2838,7 +2772,6 @@ begin
         FPendingWrite := FALSE;
     end;
 end;
-
 
 procedure TPipeThread.DoMessage;
 var
@@ -2907,7 +2840,6 @@ begin
         FRcvStream.Clear;
     end;
 end;
-
 
 procedure TPipeThread.Execute;
 var
@@ -2994,11 +2926,9 @@ begin
     end;
 end;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TPipeListenThread
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TPipeListenThread.Create(PipeServer : TPipeServer;
     KillEvent : THandle);
@@ -3025,7 +2955,6 @@ begin
     FEvents[0]          := KillEvent;
     FEvents[1]          := FOlapConnect.hEvent;
 end;
-
 
 destructor TPipeListenThread.Destroy;
 begin
@@ -3057,7 +2986,6 @@ begin
     end;
 end;
 
-
 function TPipeListenThread.CreateServerPipe : Boolean;
 begin
     // Create the outbound pipe first
@@ -3079,13 +3007,11 @@ begin
     end;
 end;
 
-
 procedure TPipeListenThread.DoWorker;
 begin
     // Call the pipe server on the main thread to add a new worker thread
     FPipeServer.AddWorkerThread(FPipe);
 end;
-
 
 function TPipeListenThread.SafeSendMessage(AMsg : UINT;
     AWParam: WPARAM; ALParam : LPARAM) : LRESULT;
@@ -3098,7 +3024,6 @@ begin
         // Not a window
         Result := 0;
 end;
-
 
 procedure TPipeListenThread.Execute;
 begin
@@ -3157,11 +3082,9 @@ begin
     end;
 end;
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TThreadCounter
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TThreadCounter.Create;
 begin
@@ -3178,7 +3101,6 @@ begin
     FCount := 0;
 end;
 
-
 destructor TThreadCounter.Destroy;
 begin
     // Resource protection
@@ -3192,7 +3114,6 @@ begin
         inherited Destroy;
     end;
 end;
-
 
 function TThreadCounter.GetCount : Integer;
 begin
@@ -3208,7 +3129,6 @@ begin
         LeaveCriticalSection(FLock);
     end;
 end;
-
 
 procedure TThreadCounter.Increment;
 begin
@@ -3226,7 +3146,6 @@ begin
         LeaveCriticalSection(FLock);
     end;
 end;
-
 
 procedure TThreadCounter.Decrement;
 begin
@@ -3247,7 +3166,6 @@ begin
     end;
 end;
 
-
 procedure TThreadCounter.WaitForEmpty;
 begin
     // Wait until the empty event is signalled
@@ -3259,11 +3177,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TWriteQueue
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TWriteQueue.Create;
 begin
@@ -3294,7 +3210,6 @@ begin
     end;
 end;
 
-
 destructor TWriteQueue.Destroy;
 begin
     // Resource protection
@@ -3313,13 +3228,11 @@ begin
     end;
 end;
 
-
 function TWriteQueue.GetEmpty : Boolean;
 begin
     // Determine if queue is empty
     Result := (FHead = nil);
 end;
-
 
 procedure TWriteQueue.Clear;
 var
@@ -3367,7 +3280,6 @@ begin
     end;
 end;
 
-
 function TWriteQueue.NodeSize(Node : PWriteNode) : LongWord;
 begin
     // Result is at least size of TWriteNode plus allocator size
@@ -3381,7 +3293,6 @@ begin
         Inc(Result, Node^.PipeWrite^.Count + SizeOf(Integer));
     end;
 end;
-
 
 function TWriteQueue.NewNode(PipeWrite : PPipeWrite) : PWriteNode;
 begin
@@ -3399,7 +3310,6 @@ begin
         Result^.NextNode := nil;
     end;
 end;
-
 
 procedure TWriteQueue.EnqueueControlPacket(ControlCode : DWORD);
 var
@@ -3424,20 +3334,17 @@ begin
     end;
 end;
 
-
 procedure TWriteQueue.EnqueueEndPacket;
 begin
     // Enqueue the start
     EnqueueControlPacket(MB_END);
 end;
 
-
 procedure TWriteQueue.EnqueueStartPacket;
 begin
     // Enqueue the start
     EnqueueControlPacket(MB_START);
 end;
-
 
 procedure TWriteQueue.EnqueueMultiPacket(PipeWrite : PPipeWrite);
 var
@@ -3491,7 +3398,6 @@ begin
     end;
 end;
 
-
 procedure TWriteQueue.UpdateState;
 begin
     // Check head node
@@ -3508,7 +3414,6 @@ begin
         SetEvent(FEmptyEv);
     end;
 end;
-
 
 procedure TWriteQueue.Enqueue(PipeWrite : PPipeWrite);
 var
@@ -3555,7 +3460,6 @@ begin
     end;
 end;
 
-
 function TWriteQueue.Dequeue : PPipeWrite;
 var
     lpNode : PWriteNode;
@@ -3601,11 +3505,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TPipeMultiMsg
 ////////////////////////////////////////////////////////////////////////////////
-
 
 procedure TPipeMultiMsg.CreateTempBacking;
 var
@@ -3635,7 +3537,6 @@ begin
     end;
 end;
 
-
 constructor TPipeMultiMsg.Create;
 begin
     // Perform inherited
@@ -3644,7 +3545,6 @@ begin
     // Create temp file backing
     CreateTempBacking;
 end;
-
 
 destructor TPipeMultiMsg.Destroy;
 begin
@@ -3662,12 +3562,10 @@ begin
 end;
 
 
-
 /// / TFastMemStream
 ////////////////////////////////////////////////////////////
 
-
-function TFastMemStream.Realloc(var NewCapacity : Longint) : Pointer;
+function TFastMemStream.Realloc(var NewCapacity : {$IFDEF MEMORYSTREAM_REALLOC_USES_LONGINT}Longint{$ELSE}NativeInt{$ENDIF}) : Pointer;
 var
     dwDelta  : Integer;
     lpMemory : Pointer;
@@ -3715,11 +3613,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Thread window procedure
 ////////////////////////////////////////////////////////////////////////////////
-
 
 function ThreadWndProc(AWindow : HWND; AMsg, AWParam : WPARAM; ALParam : LPARAM): LRESULT; stdcall;
 begin
@@ -3765,11 +3661,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TSyncManager
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TSyncManager.Create;
 begin
@@ -3782,7 +3676,6 @@ begin
     // Create the info list
     FList := TList.Create;
 end;
-
 
 destructor TSyncManager.Destroy;
 var
@@ -3803,7 +3696,6 @@ begin
     end;
 end;
 
-
 class function TSyncManager.Instance : TSyncManager;
 begin
     // Enter critical section
@@ -3821,7 +3713,6 @@ begin
         LeaveCriticalSection(InstCritSect);
     end;
 end;
-
 
 function TSyncManager.AllocateWindow : HWND;
 var
@@ -3848,7 +3739,6 @@ begin
     Result := CreateWindowEx(0, ThreadWndClass.lpszClassName, '', 0, 0, 0, 0, 0,
         0, 0, hInstance, nil);
 end;
-
 
 procedure TSyncManager.AddThread(ThreadSync : TThreadSync);
 var
@@ -3885,7 +3775,6 @@ begin
     end;
 end;
 
-
 procedure TSyncManager.RemoveThread(ThreadSync : TThreadSync);
 var
     lpInfo : TSyncInfo;
@@ -3900,13 +3789,12 @@ begin
         // Check assignment
         if Assigned(lpInfo) then
             PostMessage(lpInfo.FThreadWindow, CM_DESTROYWINDOW, 0,
-                Longint(lpInfo));
+                LPARAM(lpInfo));
     finally
         // Leave the critical section
         LeaveCriticalSection(FThreadLock);
     end;
 end;
-
 
 procedure TSyncManager.DoDestroyWindow(Info : TSyncInfo);
 begin
@@ -3926,7 +3814,6 @@ begin
     end;
 end;
 
-
 procedure TSyncManager.FreeSyncInfo(Info : TSyncInfo);
 begin
     // Check thread window
@@ -3944,7 +3831,6 @@ begin
     end;
 end;
 
-
 procedure TSyncManager.Synchronize(ThreadSync : TThreadSync);
 var
     lpInfo : TSyncInfo;
@@ -3954,9 +3840,8 @@ begin
 
     // Check assignment, send message to thread window
     if Assigned(lpInfo) then
-        SendMessage(lpInfo.FThreadWindow, CM_EXECPROC, 0, Longint(ThreadSync));
+        SendMessage(lpInfo.FThreadWindow, CM_EXECPROC, 0, LPARAM(ThreadSync));
 end;
-
 
 function TSyncManager.FindSyncInfo(SyncBaseTID : LongWord) : TSyncInfo;
 var
@@ -3978,11 +3863,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TThreadSync
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TThreadSync.Create;
 begin
@@ -3996,7 +3879,6 @@ begin
     TSyncManager.Instance.AddThread(Self);
 end;
 
-
 destructor TThreadSync.Destroy;
 begin
     // Resource protection
@@ -4008,7 +3890,6 @@ begin
         inherited Destroy;
     end;
 end;
-
 
 procedure TThreadSync.Synchronize(Method : TThreadMethod);
 begin
@@ -4030,11 +3911,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // TThreadEx
 ////////////////////////////////////////////////////////////////////////////////
-
 
 constructor TThreadEx.Create(CreateSuspended : Boolean);
 begin
@@ -4044,7 +3923,6 @@ begin
     // Perform inherited
     inherited Create(CreateSuspended);
 end;
-
 
 destructor TThreadEx.Destroy;
 begin
@@ -4058,7 +3936,6 @@ begin
     end;
 end;
 
-
 procedure TThreadEx.DoTerminate;
 begin
     // Overide the DoTerminate and don't call inherited
@@ -4066,14 +3943,12 @@ begin
         Sync.Synchronize(HandleTerminate);
 end;
 
-
 procedure TThreadEx.HandleTerminate;
 begin
     // Call OnTerminate if assigned
     if Assigned(OnTerminate) then
         OnTerminate(Self);
 end;
-
 
 procedure TThreadEx.Run;
 begin
@@ -4088,13 +3963,11 @@ begin
   {$ENDIF}
 end;
 
-
 procedure TThreadEx.Synchronize(Method : TThreadMethod);
 begin
     // Call the sync's version of synchronize
     Sync.Synchronize(Method);
 end;
-
 
 procedure TThreadEx.SafeSynchronize(Method : TThreadMethod);
 begin
@@ -4107,7 +3980,6 @@ begin
         Terminate;
     end;
 end;
-
 
 procedure TThreadEx.Wait;
 var
@@ -4137,17 +4009,14 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Console helper functions
 ////////////////////////////////////////////////////////////////////////////////
-
 
 type
     TConsoleEvent = function(dwCtrlEvent : DWORD; dwProcessGroupId : DWORD)
                               : BOOL; stdcall;
     TConsoleHwnd = function() : HWND; stdcall;
-
 
 function ConsoleWindow(ConsoleHwnd : TConsoleHwnd) : HWND; stdcall;
 begin
@@ -4159,7 +4028,6 @@ begin
         // Return zero
         Result := 0;
 end;
-
 
 function GetConsoleWindow(ProcessHandle : THandle) : HWND;
 var
@@ -4218,7 +4086,6 @@ begin
         Result := 0;
 end;
 
-
 function GetConsoleWindowEx(ProcessHandle : THandle;
     ProcessID, ThreadID : DWORD) : HWND;
 var
@@ -4245,20 +4112,17 @@ begin
     end;
 end;
 
-
 function CtrlBreak(ConsoleEvent : TConsoleEvent) : DWORD; stdcall;
 begin
     // Generate the control break
     Result := DWORD(ConsoleEvent(CTRL_BREAK_EVENT, 0));
 end;
 
-
 function CtrlC(ConsoleEvent : TConsoleEvent) : DWORD; stdcall;
 begin
     // Generate the control break
     Result := DWORD(ConsoleEvent(CTRL_C_EVENT, 0));
 end;
-
 
 function ExecConsoleEvent(ProcessHandle : THandle; Event : DWORD) : Boolean;
 var
@@ -4338,7 +4202,6 @@ begin
         Result := FALSE;
 end;
 
-
 procedure ExitProcessEx(ProcessHandle : THandle; ExitCode : DWORD);
 var
     hKernel : HMODULE;
@@ -4374,11 +4237,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Pipe helper functions
 ////////////////////////////////////////////////////////////////////////////////
-
 
 procedure ClearOverlapped(var Overlapped : TOverlapped;
     ClearEvent : Boolean = FALSE);
@@ -4396,7 +4257,6 @@ begin
     end;
 end;
 
-
 procedure CloseHandleClear(var Handle : THandle);
 begin
     // Resource protection
@@ -4410,12 +4270,10 @@ begin
     end;
 end;
 
-
 procedure CloseHandleClear(var Handle : HPIPE);
 begin
     CloseHandleClear(THandle(Handle));
 end;
-
 
 procedure DisconnectAndClose(Pipe : HPIPE; IsServer : Boolean = TRUE);
 begin
@@ -4437,7 +4295,6 @@ begin
     end;
 end;
 
-
 procedure RaiseWindowsError;
 begin
 {$IFDEF DELPHI_6_ABOVE}
@@ -4446,7 +4303,6 @@ begin
     RaiseLastWin32Error;
 {$ENDIF}
 end;
-
 
 procedure FlushMessages;
 var
@@ -4463,13 +4319,11 @@ begin
     end;
 end;
 
-
 function IsHandle(Handle : THandle) : Boolean;
 begin
     // Determine if a valid handle (only by value)
     Result := not((Handle = 0) or (Handle = INVALID_HANDLE_VALUE));
 end;
-
 
 function ComputerName : string;
 var
@@ -4490,7 +4344,6 @@ begin
         SetLength(Result, dwSize);
     end;
 end;
-
 
 function AllocPipeWriteWithPrefix(const Prefix; PrefixCount : Integer;
     const Buffer; Count : Integer) : PPipeWrite;
@@ -4521,7 +4374,6 @@ begin
     end;
 end;
 
-
 function AllocPipeWrite(const Buffer; Count : Integer) : PPipeWrite;
 begin
     // Allocate memory for the result
@@ -4538,7 +4390,6 @@ begin
         System.Move(Buffer, Result^.Buffer^, Count);
     end;
 end;
-
 
 procedure DisposePipeWrite(var PipeWrite : PPipeWrite);
 begin
@@ -4562,7 +4413,6 @@ begin
     end;
 end;
 
-
 function EnumConsoleWindows(Window : HWND; lParam : Integer) : BOOL; stdcall;
 var
     lpConInfo : PPipeConsoleInfo;
@@ -4582,7 +4432,6 @@ begin
         Result := TRUE;
 end;
 
-
 procedure CheckPipeName(Value : string);
 begin
     // Validate the pipe name
@@ -4592,11 +4441,9 @@ begin
 end;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Security helper functions
 ////////////////////////////////////////////////////////////////////////////////
-
 
 procedure InitializeSecurity(var SA : TSecurityAttributes);
 var
@@ -4623,7 +4470,6 @@ begin
         RaiseWindowsError;
 end;
 
-
 procedure FinalizeSecurity(var SA : TSecurityAttributes);
 begin
     // Release memory that was assigned to security descriptor
@@ -4638,7 +4484,6 @@ begin
         end;
     end;
 end;
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -4680,20 +4525,17 @@ asm
 end;
 {$ENDIF CPUX64}
 
-
 function CalcJmpOffset(Src, Dest : Pointer) : Longint;
 begin
     // Calculate the jump offset
     Result := NativeInt(Dest) - (NativeInt(Src) + 5);
 end;
 
-
 function CalcJmpTarget(Src : Pointer; Offs : Integer) : Pointer;
 begin
     // Calculate the jump target
     NativeInt(Result) := NativeInt(Offs) + (NativeInt(Src) + 5);
 end;
-
 
 function GetInstanceBlock(ObjectInstance : Pointer) : PInstanceBlock;
 var
@@ -4711,7 +4553,6 @@ begin
         Pointer(Result) := Pointer(NativeInt(CalcJmpTarget(lpInst, lpInst^.Offset)
             ) - SizeOf(Word) - SizeOf(PInstanceBlock));
 end;
-
 
 function MakeObjectInstance(Method : TWndMethod) : Pointer;
 var
@@ -4787,7 +4628,6 @@ begin
     end;
 end;
 
-
 function FreeInstanceBlock(Block : Pointer) : Boolean;
 var
     lpBlock : PInstanceBlock;
@@ -4832,7 +4672,6 @@ begin
     end;
 end;
 
-
 procedure FreeInstanceBlocks;
 var
     lpPrev  : PInstanceBlock;
@@ -4868,7 +4707,6 @@ begin
     end;
 end;
 
-
 procedure FreeObjectInstance(ObjectInstance : Pointer);
 var
     lpBlock : PInstanceBlock;
@@ -4903,7 +4741,6 @@ begin
         end;
     end;
 end;
-
 
 function AllocateHWnd(Method : TWndMethod) : HWND;
 var
@@ -4942,7 +4779,6 @@ begin
     end;
 end;
 
-
 procedure DeallocateHWnd(Wnd : HWND);
 var
     Instance : Pointer;
@@ -4969,7 +4805,6 @@ begin
     end;
 end;
 
-
 procedure CreateMessageQueue;
 var
     lpMsg : TMsg;
@@ -4978,24 +4813,23 @@ begin
     PeekMessage(lpMsg, 0, WM_USER, WM_USER, PM_NOREMOVE);
 end;
 
-
 initialization
 
-// Initialize the critical section for instance handling
-InitializeCriticalSection(InstCritSect);
+  // Initialize the critical section for instance handling
+  InitializeCriticalSection(InstCritSect);
 
-// If this is a console application then create a message queue
-if IsConsole then
-    CreateMessageQueue;
+  // If this is a console application then create a message queue
+  if IsConsole then
+      CreateMessageQueue;
 
 finalization
 
-// Check sync manager
-if Assigned(SyncManager) then
-    FreeAndNil(SyncManager);
+  // Check sync manager
+  if Assigned(SyncManager) then
+      FreeAndNil(SyncManager);
 
-// Delete the critical section for instance handling
-DeleteCriticalSection(InstCritSect);
+  // Delete the critical section for instance handling
+  DeleteCriticalSection(InstCritSect);
 
 end.
 
