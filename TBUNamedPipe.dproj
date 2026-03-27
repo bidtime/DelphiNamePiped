@@ -112,7 +112,8 @@
         </DelphiCompile>
         <DCCReference Include="src\Components\Pipes.pas"/>
         <DCCReference Include="src\TBUNP_ServerPipe.pas"/>
-        <DCCReference Include="src\TBUNP_Exports.pas"/>
+        <DCCReference Include="src\TBUNP_ServerExports.pas"/>
+        <DCCReference Include="src\TBUNP_ClientExports.pas"/>
         <DCCReference Include="src\TBUNP_ClientPipe.pas"/>
         <DCCReference Include="src\TBUNP_Utils.pas"/>
         <BuildConfiguration Include="Base">

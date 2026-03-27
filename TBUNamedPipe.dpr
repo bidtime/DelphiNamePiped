@@ -15,7 +15,9 @@ uses
   System.Classes,
   Pipes in 'src\Components\Pipes.pas',
   TBUNP_ServerPipe in 'src\TBUNP_ServerPipe.pas',
-  TBUNP_Exports in 'src\TBUNP_Exports.pas',
+  TBUNP_ServerExports in 'src\TBUNP_ServerExports.pas',
+  //
+  TBUNP_ClientExports in 'src\TBUNP_ClientExports.pas',
   TBUNP_ClientPipe in 'src\TBUNP_ClientPipe.pas',
   TBUNP_Utils in 'src\TBUNP_Utils.pas';
 
