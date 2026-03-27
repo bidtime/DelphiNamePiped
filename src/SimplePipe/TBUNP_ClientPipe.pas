@@ -4,8 +4,7 @@ interface
 
 uses
   SysUtils, Classes, ExtCtrls,
-  Pipes,
-  TBUNP_ClientTypes,
+  Pipes, TBUNP_ClientTypes,
   TBUNP_Utils;
 
 type

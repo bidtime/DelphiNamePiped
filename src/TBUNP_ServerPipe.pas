@@ -5,18 +5,19 @@ interface
 uses
   SysUtils, Classes,
   Pipes,
+  TBUNP_ServerTypes,
   TBUNP_Utils;
 
 type
-  TPSConnectCb    = procedure(aPipe: Cardinal) of object; stdcall;
-  TPSDisconnectCb = procedure(aPipe: Cardinal) of object; stdcall;
-  TPSErrorCb      = procedure(aPipe: Cardinal;
-                              aPipeContext: ShortInt;
-                              aErrorCode: Integer) of object; stdcall;
-  TPSMessageCb    = procedure(aPipe: Cardinal;
-                              aMsg: PWideChar) of object; stdcall;
-  TPSSentCb       = procedure(aPipe: Cardinal;
-                              aSize: Cardinal) of object; stdcall;
+//  TPSConnectCb    = procedure(aPipe: Cardinal) of object; stdcall;
+//  TPSDisconnectCb = procedure(aPipe: Cardinal) of object; stdcall;
+//  TPSErrorCb      = procedure(aPipe: Cardinal;
+//                              aPipeContext: ShortInt;
+//                              aErrorCode: Integer) of object; stdcall;
+//  TPSMessageCb    = procedure(aPipe: Cardinal;
+//                              aMsg: PWideChar) of object; stdcall;
+//  TPSSentCb       = procedure(aPipe: Cardinal;
+//                              aSize: Cardinal) of object; stdcall;
 
   TTBUNP_ServerPipe = class(TObject)
     private
@@ -43,9 +44,6 @@ type
       function Disconnect(aPipe: HPIPE): Boolean;
       function GetClientCount: Integer;
   end;
-
-var
-  gServerPipe: TTBUNP_ServerPipe;
 
 implementation
 

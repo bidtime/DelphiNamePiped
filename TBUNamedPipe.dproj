@@ -110,11 +110,16 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="src\Components\Pipes.pas"/>
-        <DCCReference Include="src\TBUNP_ServerPipe.pas"/>
+        <DCCReference Include="src\TBUNP_CommonTypes.pas"/>
+        <DCCReference Include="src\TBUNP_ServerTypes.pas"/>
+        <DCCReference Include="src\TBUNP_ClientTypes.pas"/>
         <DCCReference Include="src\TBUNP_ServerExports.pas"/>
         <DCCReference Include="src\TBUNP_ClientExports.pas"/>
-        <DCCReference Include="src\TBUNP_ClientPipe.pas"/>
+        <DCCReference Include="src\Components\Pipes.pas"/>
+        <DCCReference Include="src\SimplePipe\Components\AuxTypes.pas"/>
+        <DCCReference Include="src\WinAPI_Ver_01\Components\WinApiPipeClient.pas"/>
+        <DCCReference Include="src\FWIOPipe\Components\uNamedPipesExchange.pas"/>
+        <DCCReference Include="src\CromisPipes\Components\Cromis.Comm.Custom.pas"/>
         <DCCReference Include="src\TBUNP_Utils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

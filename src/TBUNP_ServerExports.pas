@@ -4,7 +4,8 @@ interface
 
 uses
   SysUtils, Classes,
-  Pipes,
+  TBUNP_CommonTypes,
+  TBUNP_ServerTypes,
   TBUNP_ServerPipe;
 
 { Declare Pipe Server Procedures }
@@ -41,6 +42,9 @@ exports
   RegisterOnPipeServerErrorCallback,
   RegisterOnPipeServerMessageCallback,
   RegisterOnPipeServerSentCallback;
+
+var
+  gServerPipe: TTBUNP_ServerPipe;
 
 implementation
 

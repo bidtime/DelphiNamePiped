@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Classes,
-  Pipes,
+  TBUNP_ClientTypes,
   TBUNP_ClientPipe;
 
 { Declare Pipe Client Procedures }
@@ -41,6 +41,8 @@ exports
   RegisterOnPipeClientSentCallback;
 
 implementation
+
+var gClientPipe: TTBUNP_ClientPipe;
 
 { Declare Pipe Client Procedures }
 procedure PipeClientInitialize; stdcall; export;

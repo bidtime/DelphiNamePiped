@@ -4,21 +4,11 @@ interface
 
 uses
   SysUtils, Classes, ExtCtrls,
-  Pipes,
-  TBUNP_ClientTypes,
+  TBUNP_ClientTypes,,
+  WinApiPipeClient,
   TBUNP_Utils;
 
 type
-//  TOwnState       = (ownsConnected, ownsDisconnected);
-//  TPCDisconnectCb = procedure(aPipe: Cardinal) of object; stdcall;
-//  TPCErrorCb      = procedure(aPipe: Cardinal;
-//                              aPipeContext: ShortInt;
-//                              aErrorCode: Integer) of object; stdcall;
-//  TPCMessageCb    = procedure(aPipe: Cardinal;
-//                              aMsg: PWideChar) of object; stdcall;
-//  TPCSentCb       = procedure(aPipe: Cardinal;
-//                              aSize: Cardinal) of object; stdcall;
-
   TTBUNP_ClientPipe = class(TObject)
     private
       FPipeClient:   TPipeClient;
