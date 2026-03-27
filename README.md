@@ -1,2 +1,1 @@
-# DelphiNamePiped
-this is a delphi name piped project dll useful
+The function of this project is to use the name piped implemented by delphi, which is encapsulated with dll. The source code comes from https://github.com/LauraRozier/TBU-Named-Pipe.git.
