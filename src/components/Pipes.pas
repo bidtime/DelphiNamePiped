@@ -1,6 +1,6 @@
-{* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+锘縶* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-Author:       Russell Libby, updated by Fran鏾is PIETTE @ OverByte
+Author:       Russell Libby, updated by Fran莽ois PIETTE @ OverByte
 Creation:     Mar 30, 2003
 Last update:  Oct 04, 2013
 Description:  Pipe components by Russell Libby
@@ -124,6 +124,9 @@ interface
 {$IFNDEF DELPHI_XE2_ABOVE}
   {$DEFINE CPUX86}
 {$ENDIF}
+{$IF RTLVERSION <= 34} // Delphi 10.4 Sydney and below
+  {$DEFINE MEMORYSTREAM_REALLOC_USES_LONGINT}
+{$IFEND}
 
 {$WARN SYMBOL_PLATFORM OFF}        // TThreadPriority is specific to Windows
 
@@ -152,9 +155,9 @@ resourcestring
     resConClass = 'ConsoleWindowClass';
     resComSpec = 'ComSpec';
 
-////////////////////////////////////////////////////////////////////////////////
-// Min, max and default constants
-////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    // Min, max and default constants
+    ////////////////////////////////////////////////////////////////////////////////
 const
     MAX_NAME        = 256;
     MAX_WAIT        = 1000;
@@ -430,7 +433,7 @@ type
     TFastMemStream = class(TMemoryStream)
     protected
         // Protected declarations
-        function Realloc(var NewCapacity : NativeInt) : Pointer; override;
+        function Realloc(var NewCapacity : {$IFDEF MEMORYSTREAM_REALLOC_USES_LONGINT}Longint{$ELSE}NativeInt{$ENDIF}) : Pointer; override;
     end;
 
     // Multipacket message handler
@@ -600,6 +603,7 @@ type
         FKillEv        : THandle;
         FSA            : TSecurityAttributes;
         FOPE           : TOnPipeError;
+        FOPC           : TOnPipeConnect;
         FOPD           : TOnPipeDisconnect;
         FOPM           : TOnPipeMessage;
         FOPS           : TOnPipeSent;
@@ -624,7 +628,6 @@ type
         function Write(var Prefix; PrefixCount : Integer; var Buffer;
             Count : Integer) : Boolean; overload;
         function Write(var Buffer; Count : Integer) : Boolean; overload;
-    public
         property Connected : Boolean read GetConnected;
         property WindowHandle : HWND read FHwnd;
         property Pipe : HPIPE read FPipe;
@@ -633,6 +636,7 @@ type
         property MemoryThrottle : LongWord read FThrottle write FThrottle;
         property PipeName       : string read FPipeName write SetPipeName;
         property ServerName     : string read FServerName write SetServerName;
+        property OnPipeConnect    : TOnPipeConnect read FOPC write FOPC;
         property OnPipeDisconnect : TOnPipeDisconnect read FOPD write FOPD;
         property OnPipeMessage : TOnPipeMessage read FOPM write FOPM;
         property OnPipeSent    : TOnPipeSent read FOPS write FOPS;
@@ -785,6 +789,10 @@ type
             0 : (Next : PObjectInstance);
             1 : (Method : TWndMethod);
     end;
+
+    {$IF NOT DECLARED(LPARAM)}
+    LPARAM = Longint;
+    {$ENDIF}
 
 const
   {$IFDEF CPUX86}
@@ -1924,13 +1932,11 @@ begin
 
     // Resource protection
     try
+        // Notify of disconnect
+        if (not(csDestroying in ComponentState) and Assigned(FOPD)) then
+            FOPD(Self, FPipe);
         // Clear the write queue
         FWriteQueue.Clear;
-
-        // Notify of disconnect
-        if (not(csDestroying in ComponentState) and Assigned(FOPD) and
-            not FDisconnecting) then
-            FOPD(Self, FPipe);
     finally
         // Invalidate handle
         FPipe := INVALID_HANDLE_VALUE;
@@ -1945,6 +1951,10 @@ begin
         WM_PIPEERROR_W :
             if Assigned(FOPE) then
                 FOPE(Self, AMsg.wParam, pcWorker, AMsg.lParam);
+        // Pipe connected
+        WM_PIPECONNECT :
+            if Assigned(FOPC) then
+                FOPC(Self, AMsg.wParam);
         // Pipe data sent
         WM_PIPESEND :
             if Assigned(FOPS) then
@@ -2432,7 +2442,7 @@ begin
             // Free the listener thread
             FreeAndNil(FListener);
             // Re-raise the exception
-            raise;
+            //raise;
         end;
         // Set active state
         FActive := TRUE;
@@ -3561,7 +3571,7 @@ end;
 /// / TFastMemStream
 ////////////////////////////////////////////////////////////
 
-function TFastMemStream.Realloc(var NewCapacity : NativeInt) : Pointer;
+function TFastMemStream.Realloc(var NewCapacity : {$IFDEF MEMORYSTREAM_REALLOC_USES_LONGINT}Longint{$ELSE}NativeInt{$ENDIF}) : Pointer;
 var
     dwDelta  : Integer;
     lpMemory : Pointer;
@@ -3613,61 +3623,49 @@ end;
 // Thread window procedure
 ////////////////////////////////////////////////////////////////////////////////
 
-function ThreadWndProc(AWindow: HWND; AMsg: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
-var
-  SyncInfo: TThreadSync;
-  SafeMethod: TThreadMethod;
+function ThreadWndProc(AWindow : HWND; AMsg, AWParam : WPARAM; ALParam : LPARAM): LRESULT; stdcall;
 begin
-  case AMsg of
-    CM_EXECPROC:
-      begin
-        Result := 0;
-        try
-          // 使用临时变量保存方法，避免悬垂指针
-          SafeMethod := nil;
-
-          if (lParam <> 0) and (lParam <> INVALID_HANDLE_VALUE) then
-          begin
-            try
-              SyncInfo := TThreadSync(Pointer(lParam));
-              if Assigned(SyncInfo) then
-              begin
-                SyncInfo.FSyncRaise := nil;
-                SafeMethod := SyncInfo.FMethod;
-              end;
-            except
-              // 如果获取SyncInfo失败，使用nil
-              //SyncInfo := nil;
+    // Handle the window message
+    case AMsg of
+        // Exceute the method in thread
+        CM_EXECPROC : begin
+                // The lParam contains the thread sync information
+                with TThreadSync(ALParam) do begin
+                    // Set message result
+                    Result := 0;
+                    // Exception trap
+                    try
+                        // Clear the exception
+                        FSyncRaise := nil;
+                        // Call the method
+                        FMethod;
+                    except
+{$IFNDEF DELPHI_6_ABOVE}
+                        if not(RaiseList = nil) then begin
+                            // Get exception object from frame
+                            FSyncRaise := PRaiseFrame(RaiseList)^.ExceptObject;
+                            // Clear frame exception object
+                            PRaiseFrame(RaiseList)^.ExceptObject := nil;
+                        end;
+{$ELSE}
+                        FSyncRaise := AcquireExceptionObject;
+{$ENDIF}
+                    end;
+                end;
             end;
-          end;
-
-          // 执行方法
-          if Assigned(SafeMethod) then
-            SafeMethod();
-
-        except
-          on E: Exception do
-          begin
-            // 只记录异常，不尝试创建异常对象
-            //OutputDebugString(PChar('ThreadWndProc exception: ' + E.Message));
-          end;
-        end;
-      end;
-
-    CM_DESTROYWINDOW:
-      begin
-        try
-          if Assigned(SyncManager) and (lParam <> 0) and (lParam <> INVALID_HANDLE_VALUE) then
-            SyncManager.DoDestroyWindow(TSyncInfo(Pointer(lParam)));
-        except
-          // 忽略异常
-        end;
-        Result := 0;
-      end;
-  else
-    Result := DefWindowProc(AWindow, AMsg, wParam, lParam);
-  end;
+        // Thead destroying
+        CM_DESTROYWINDOW : begin
+                // Get instance of sync manager
+                TSyncManager.Instance.DoDestroyWindow(TSyncInfo(ALParam));
+                // Set message result
+                Result := 0;
+            end;
+    else
+        // Call the default window procedure
+        Result := DefWindowProc(AWindow, AMsg, AWParam, ALParam);
+    end;
 end;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // TSyncManager
@@ -3797,7 +3795,7 @@ begin
         // Check assignment
         if Assigned(lpInfo) then
             PostMessage(lpInfo.FThreadWindow, CM_DESTROYWINDOW, 0,
-                Longint(lpInfo));
+                LPARAM(lpInfo));
     finally
         // Leave the critical section
         LeaveCriticalSection(FThreadLock);
@@ -3848,7 +3846,7 @@ begin
 
     // Check assignment, send message to thread window
     if Assigned(lpInfo) then
-        SendMessage(lpInfo.FThreadWindow, CM_EXECPROC, 0, Longint(ThreadSync));
+        SendMessage(lpInfo.FThreadWindow, CM_EXECPROC, 0, LPARAM(ThreadSync));
 end;
 
 function TSyncManager.FindSyncInfo(SyncBaseTID : LongWord) : TSyncInfo;
@@ -3899,22 +3897,25 @@ begin
     end;
 end;
 
-procedure TThreadSync.Synchronize(Method: TThreadMethod);
-var
-  ExceptionMsg: string;
+procedure TThreadSync.Synchronize(Method : TThreadMethod);
 begin
-  try
+    // Clear sync raise exception object
+    FSyncRaise := nil;
+
+    // Set the method pointer
     FMethod := Method;
-    TSyncManager.Instance.Synchronize(Self);
-  except
-    on E: Exception do
-    begin
-      // 直接重新抛出异常，而不是通过FSyncRaise
-      ExceptionMsg := E.Message;
-      raise Exception.Create('Synchronization error: ' + ExceptionMsg);
+
+    // Resource protection
+    try
+        // Have the sync manager call the method
+        TSyncManager.Instance.Synchronize(Self);
+    finally
+        // Check to see if the exception object was set
+        if Assigned(FSyncRaise) then
+            raise FSyncRaise;
     end;
-  end;
 end;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // TThreadEx
@@ -4820,21 +4821,22 @@ end;
 
 initialization
 
-// Initialize the critical section for instance handling
-InitializeCriticalSection(InstCritSect);
+  // Initialize the critical section for instance handling
+  InitializeCriticalSection(InstCritSect);
 
-// If this is a console application then create a message queue
-if IsConsole then
-    CreateMessageQueue;
+  // If this is a console application then create a message queue
+  if IsConsole then
+      CreateMessageQueue;
 
 finalization
 
-// Check sync manager
-if Assigned(SyncManager) then
-    FreeAndNil(SyncManager);
+  // Check sync manager
+  if Assigned(SyncManager) then
+      FreeAndNil(SyncManager);
 
-// Delete the critical section for instance handling
-DeleteCriticalSection(InstCritSect);
+  // Delete the critical section for instance handling
+  DeleteCriticalSection(InstCritSect);
 
 end.
+
 
