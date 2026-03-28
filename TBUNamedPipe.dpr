@@ -51,6 +51,12 @@ uses
   TBUNP_ServerPipe in 'src\CromisPipes\TBUNP_ServerPipe.pas',
   TBUNP_ClientPipe in 'src\\CromisPipes\TBUNP_ClientPipe.pas',
   {$ENDIF}
+  {$IFDEF LAZARUS_PIPES}
+  pipeserver_unit in 'src\LazarusPipe\Components\pipeserver_unit.pas',
+  pipeclient_unit in 'src\LazarusPipe\Components\pipeclient_unit.pas',
+  TBUNP_ServerPipe in 'src\LazarusPipe\TBUNP_ServerPipe.pas',
+  TBUNP_ClientPipe in 'src\\LazarusPipe\TBUNP_ClientPipe.pas',
+  {$ENDIF}
   TBUNP_Utils in 'src\TBUNP_Utils.pas';
 
 {$R *.res}

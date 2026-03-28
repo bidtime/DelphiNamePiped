@@ -120,6 +120,7 @@
         <DCCReference Include="src\WinAPI_Ver_01\Components\WinApiPipeClient.pas"/>
         <DCCReference Include="src\FWIOPipe\Components\uNamedPipesExchange.pas"/>
         <DCCReference Include="src\CromisPipes\Components\Cromis.Comm.Custom.pas"/>
+        <DCCReference Include="src\LazarusPipe\Components\pipeserver_unit.pas"/>
         <DCCReference Include="src\TBUNP_Utils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
