@@ -23,6 +23,7 @@ type
     GroupBox1: TGroupBox;
     ToolButton1: TToolButton;
     edDelay: TEdit;
+    edtNums: TEdit;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -55,7 +56,7 @@ var
 
 implementation
 
-uses uFormIniFiles, System.Threading;
+uses uFormIniFiles, System.Threading, Winapi.PsAPI;
 
 {$R *.dfm}
 
@@ -81,7 +82,8 @@ begin
   if (isBreak()) then
     exit;
 
-  TaskForceQueue(
+  //TaskForceQueue(
+  TThread.ForceQueue(nil,
   procedure
   begin
     if (isBreak()) then
@@ -139,11 +141,14 @@ begin
 //      if self.chkFmt.Checked then
 //        AddLog('done: %d', [n])
 //      else
-      if PipeServerBroadcast(PWideChar(format('%d, %s', [n, edtText.Text]))) then begin
-        AddLog(Format('<< Successfully broadcasted message: %d, %s', [n, edtText.Text]));
-      end else begin
-        AddLog(Format('<< Failed to broadcasted message: %d, %s', [n, edtText.Text]));
-      end;
+      //addLog(format('%d, %s', [n, edtText.Text]));
+      AddLog(format('%d, %s', [n, edtText.Text]));
+      PipeServerBroadcast(PWideChar(format('%d, %s', [n, edtText.Text])));
+//      if PipeServerBroadcast(PWideChar(format('%d, %s', [n, edtText.Text]))) then begin
+//        AddLog(Format('<< Successfully broadcasted message: %d, %s', [n, edtText.Text]));
+//      end else begin
+//        AddLog(Format('<< Failed to broadcasted message: %d, %s', [n, edtText.Text]));
+//      end;
     end
   );
 end;
@@ -204,7 +209,7 @@ end;
 
 function TForm1.isBreak: boolean;
 begin
-  Result := self.chkBreak.Checked;
+  Result := Application.Terminated;
 end;
 
 procedure TForm1.OnConnect(aPipe: Cardinal); stdcall;
@@ -241,16 +246,22 @@ procedure TForm1.ExecuteLoop(ACallback: TProc<Word>);
 var
   n, nDelay: word;
   StartTime, EndTime: Cardinal;
-  ElapsedTime, LoopsPerSecond: Double;
-  LoopCount: Integer;
+  TotalTime, Frequency: Double;
+  LoopCount, MemUsage, LastMemUsage: Cardinal;
+  ProcessHandle: THandle;
 begin
   addLog('ExecuteLoop begin...');
   self.chkBreak.Checked := false;
   n := 0;
   LoopCount := 0;
   nDelay := StrToIntDef(self.edDelay.Text, 20);
+  var curMaxLines := StrToIntDef(self.edtNums.Text, 2000);
+  // 获取当前进程内存使用
+  ProcessHandle := GetCurrentProcess;
+  GetProcessMemoryInfo(ProcessHandle, @MemUsage, SizeOf(MemUsage));
+  LastMemUsage := MemUsage;
+  addLog('初始内存使用: ' + FormatFloat('0.00', MemUsage/1024/1024) + ' MB');
 
-  // 记录开始时间（毫秒精度）
   StartTime := GetTickCount;
 
   while true do begin
@@ -267,9 +278,74 @@ begin
       ACallback(n);
     end;
 
+    // 每100次检查一次内存
+    if (LoopCount mod 100) = 0 then
+    begin
+      GetProcessMemoryInfo(ProcessHandle, @MemUsage, SizeOf(MemUsage));
+      if MemUsage > LastMemUsage + 1024 * 1024 then  // 内存增加超过1MB
+      begin
+        addLog('内存增加: ' + FormatFloat('0.00', (MemUsage-LastMemUsage)/1024/1024) + ' MB');
+        LastMemUsage := MemUsage;
+      end;
+    end;
+
     delay(nDelay);
 
-    if self.isBreak() or not self.FConnected or (n>2000) then begin
+    if self.isBreak() or (self.chkBreak.Checked) or (not self.FConnected) or (LoopCount >= curMaxLines) then begin
+      break;
+    end;
+  end;
+
+  EndTime := GetTickCount;
+  TotalTime := (EndTime - StartTime) / 1000.0;
+
+  if TotalTime > 0 then
+    Frequency := LoopCount / TotalTime
+  else
+    Frequency := 0;
+
+  addLog('最终内存使用: ' + FormatFloat('0.00', MemUsage/1024/1024) + ' MB');
+  addLog('ExecuteLoop 完成统计:');
+  addLog('  总循环次数: ' + IntToStr(LoopCount));
+  addLog('  总耗时: ' + FormatFloat('0.00', TotalTime) + ' 秒');
+  addLog('  频率: ' + FormatFloat('0.0', Frequency) + ' 次/秒');
+  addLog('ExecuteLoop end.');
+end;
+
+{procedure TForm1.ExecuteLoop(ACallback: TProc<Word>);
+var
+  n, nDelay: word;
+  StartTime, EndTime: Cardinal;
+  ElapsedTime, LoopsPerSecond: Double;
+  LoopCount: Integer;
+begin
+  addLog('ExecuteLoop begin...');
+  self.chkBreak.Checked := false;
+  n := 0;
+  LoopCount := 0;
+  nDelay := StrToIntDef(self.edDelay.Text, 20);
+  var nMaxLines := StrToIntDef(self.edtNums.Text, 2000);
+
+  // 记录开始时间（毫秒精度）
+  StartTime := GetTickCount;
+
+  while true do begin
+    if n = Word.MaxValue then begin
+      break;
+    end else begin
+      Inc(n);
+    end;
+
+    Inc(LoopCount);
+
+    if Assigned(ACallback) then
+    begin
+      ACallback(n);
+    end;
+
+    delay(nDelay);
+
+    if self.isBreak() or not self.FConnected or (n>nMaxLines) then begin
       break;
     end;
   end;
@@ -290,7 +366,7 @@ begin
   addLog('  耗时: ' + FormatFloat('0.00', ElapsedTime) + ' 秒');
   addLog('  频率: ' + FormatFloat('0.00', LoopsPerSecond) + ' 次/秒');
   addLog('ExecuteLoop end.');
-end;
+end;}
 
 function TForm1.readWriteIni(const bWrite: boolean): boolean;
 begin

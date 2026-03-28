@@ -25,6 +25,7 @@ object Form2: TForm2
     Caption = 'Send Message:'
   end
   object memoLog: TMemo
+    Tag = 1
     Left = 6
     Top = 29
     Width = 623
@@ -79,8 +80,16 @@ object Form2: TForm2
       TabOrder = 0
       OnClick = btnClearClick
     end
-    object chkBreak: TCheckBox
+    object edtNums: TEdit
       Left = 83
+      Top = 0
+      Width = 46
+      Height = 21
+      TabOrder = 8
+      Text = '5000'
+    end
+    object chkBreak: TCheckBox
+      Left = 129
       Top = 0
       Width = 35
       Height = 21
@@ -88,7 +97,7 @@ object Form2: TForm2
       TabOrder = 5
     end
     object edDelay: TEdit
-      Left = 118
+      Left = 164
       Top = 0
       Width = 19
       Height = 21
@@ -96,7 +105,7 @@ object Form2: TForm2
       Text = '0'
     end
     object btnDoLoop: TButton
-      Left = 137
+      Left = 183
       Top = 0
       Width = 75
       Height = 21
@@ -105,7 +114,7 @@ object Form2: TForm2
       OnClick = btnDoLoopClick
     end
     object cbAuto: TCheckBox
-      Left = 212
+      Left = 258
       Top = 0
       Width = 57
       Height = 21
@@ -113,7 +122,7 @@ object Form2: TForm2
       TabOrder = 3
     end
     object edtPipeName: TEdit
-      Left = 269
+      Left = 315
       Top = 0
       Width = 92
       Height = 21
@@ -121,7 +130,7 @@ object Form2: TForm2
       Text = 'MyPublicPipe'
     end
     object Button3: TButton
-      Left = 361
+      Left = 407
       Top = 0
       Width = 75
       Height = 21
@@ -131,7 +140,7 @@ object Form2: TForm2
       OnClick = Button3Click
     end
     object Button2: TButton
-      Left = 436
+      Left = 482
       Top = 0
       Width = 75
       Height = 21

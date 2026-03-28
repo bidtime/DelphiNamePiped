@@ -4540,7 +4540,7 @@ end;
 function CalcJmpTarget(Src : Pointer; Offs : Integer) : Pointer;
 begin
     // Calculate the jump target
-    NativeInt(Result) := NativeInt(Offs) + (NativeInt(Src) + 5);
+    Result := Pointer(NativeInt(Offs) + (NativeInt(Src) + 5));
 end;
 
 function GetInstanceBlock(ObjectInstance : Pointer) : PInstanceBlock;

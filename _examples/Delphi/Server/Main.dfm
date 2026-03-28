@@ -14,6 +14,7 @@ object Form1: TForm1
   OnDestroy = FormDestroy
   TextHeight = 13
   object memoLog: TMemo
+    Tag = 1
     Left = 0
     Top = 23
     Width = 659
@@ -50,16 +51,24 @@ object Form1: TForm1
       TabOrder = 0
       OnClick = btnClearClick
     end
-    object chkBreak: TCheckBox
+    object edtNums: TEdit
       Left = 83
       Top = 0
-      Width = 35
+      Width = 46
+      Height = 21
+      TabOrder = 8
+      Text = '5000'
+    end
+    object chkBreak: TCheckBox
+      Left = 129
+      Top = 0
+      Width = 33
       Height = 21
       Caption = 'bk'
       TabOrder = 5
     end
     object edDelay: TEdit
-      Left = 118
+      Left = 162
       Top = 0
       Width = 19
       Height = 21
@@ -67,7 +76,7 @@ object Form1: TForm1
       Text = '0'
     end
     object btnDoLoop: TButton
-      Left = 137
+      Left = 181
       Top = 0
       Width = 75
       Height = 21
@@ -76,7 +85,7 @@ object Form1: TForm1
       OnClick = btnDoLoopClick
     end
     object cbAuto: TCheckBox
-      Left = 212
+      Left = 256
       Top = 0
       Width = 57
       Height = 21
@@ -84,7 +93,7 @@ object Form1: TForm1
       TabOrder = 4
     end
     object edtPipeName: TEdit
-      Left = 269
+      Left = 313
       Top = 0
       Width = 121
       Height = 21
@@ -92,7 +101,7 @@ object Form1: TForm1
       Text = 'MyPublicPipe'
     end
     object Button3: TButton
-      Left = 390
+      Left = 434
       Top = 0
       Width = 75
       Height = 21
@@ -102,7 +111,7 @@ object Form1: TForm1
       OnClick = Button3Click
     end
     object Button2: TButton
-      Left = 465
+      Left = 509
       Top = 0
       Width = 75
       Height = 21
