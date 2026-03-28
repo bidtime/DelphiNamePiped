@@ -98,7 +98,7 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  readWriteIni(false);
+  readWriteIni(true);
   PipeServerDestroy;
 end;
 
