@@ -3,7 +3,8 @@ program Server;
 uses
   Vcl.Forms,
   Main in 'Main.pas' {Form1},
-  TBUNamedPipe in '..\..\..\_wrappers\TBUNamedPipe.pas';
+  uFormIniFiles in '..\Public\uFormIniFiles.pas',
+  TBUNamedServerPipe in '..\..\..\_wrappers\TBUNamedServerPipe.pas';
 
 {$R *.res}
 

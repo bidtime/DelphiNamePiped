@@ -20,7 +20,6 @@ type
     FOnPipeServerMessageCallback: TPSMessageCb;
     FOnPipeServerSentCallback: TPSSentCb;
     FPipeName: string;
-    FActive: Boolean;
     FRequestCounter: Integer;
     FConnections: TThreadList;  // 存储连接信息
     FHandleCounter: Cardinal;   // 句柄计数器
@@ -48,6 +47,8 @@ type
     function Send(aPipe: HPIPE; aMsg: PWideChar): Boolean;
     function Disconnect(aPipe: HPIPE): Boolean;
     function GetClientCount: Integer;
+
+    function isActive(): Boolean;
 
     property OnPipeServerConnectCallback: TPSConnectCb
       read FOnPipeServerConnectCallback write FOnPipeServerConnectCallback;
@@ -88,15 +89,28 @@ begin
   inherited Create;
   FIPCServer := nil;
   FConnections := TThreadList.Create;
-  FActive := False;
-  FPipeName := '';
+  FPipeName := 'TBU_Pipe';
   FRequestCounter := 0;
   FHandleCounter := 1000;  // 从 1000 开始
+
+  FIPCServer := TIPCServer.Create;
+  // 设置事件处理程序
+  FIPCServer.OnClientConnect := HandleClientConnect;
+  FIPCServer.OnClientDisconnect := HandleClientDisconnect;
+  FIPCServer.OnServerError := HandleServerError;
+  FIPCServer.OnExecuteRequest := HandleExecuteRequest;
 end;
 
 destructor TTBUNP_ServerPipe.Destroy;
 begin
+  // 设置事件处理程序
+//  FIPCServer.OnClientConnect := nil;
+//  FIPCServer.OnClientDisconnect := nil;
+  FIPCServer.OnServerError := nil;
+  FIPCServer.OnExecuteRequest := nil;
+  //
   Stop;
+  FIPCServer.free;
   FConnections.Free;
   inherited;
 end;
@@ -110,39 +124,18 @@ end;
 
 function TTBUNP_ServerPipe.Start: Boolean;
 begin
-  if FActive then
-  begin
-    Result := True;
-    Exit;
-  end;
-
-  if FPipeName = '' then
-    FPipeName := 'TBU_Pipe';
-
   try
-    FIPCServer := TIPCServer.Create;
-
-    // 设置事件处理程序
-    FIPCServer.OnClientConnect := HandleClientConnect;
-    FIPCServer.OnClientDisconnect := HandleClientDisconnect;
-    FIPCServer.OnServerError := HandleServerError;
-    FIPCServer.OnExecuteRequest := HandleExecuteRequest;
-
     // 设置服务器名称
     FIPCServer.ServerName := FPipeName;
 
-    // 启动服务器
-    FIPCServer.Start;
-
-    FActive := True;
+    if not isActive then begin
+      FIPCServer.Start;
+    end;
     Result := True;
-
   except
     on E: Exception do
     begin
       Result := False;
-      FreeAndNil(FIPCServer);
-
       if Assigned(FOnPipeServerErrorCallback) then
         FOnPipeServerErrorCallback(0, 0, GetLastError);
     end;
@@ -152,21 +145,16 @@ end;
 function TTBUNP_ServerPipe.Start(aPipeName: PWideChar): Boolean;
 begin
   if aPipeName <> nil then
-    FPipeName := StrPas(aPipeName)
-  else
-    FPipeName := 'TBU_Pipe';
+    FPipeName := StrPas(aPipeName);
 
   Result := Start;
 end;
 
 procedure TTBUNP_ServerPipe.Stop;
 begin
-  if not FActive or (FIPCServer = nil) then
-    Exit;
-
-  FActive := False;
-  FIPCServer.Stop;
-  FreeAndNil(FIPCServer);
+  if isActive then begin
+    FIPCServer.Stop;
+  end;
 
   // 清理连接列表
   var List := FConnections.LockList;
@@ -271,6 +259,11 @@ begin
   SendEventToMainThread(2, Handle, nil, Error.Code);
 end;
 
+function TTBUNP_ServerPipe.isActive: Boolean;
+begin
+  Result := self.FIPCServer.Listening;
+end;
+
 procedure TTBUNP_ServerPipe.HandleExecuteRequest(const Context: ICommContext;
   const Request, Response: IMessageData);
 var
@@ -372,7 +365,7 @@ begin
   // Cromis IPC 不支持直接的广播
   // 需要遍历所有连接单独发送
   Result := False;
-  if not FActive or (aMsg = nil) then
+  if not isActive or (aMsg = nil) then
     Exit;
 
   // 获取所有连接
@@ -396,7 +389,7 @@ begin
   // 向特定连接发送消息
   // Cromis 没有直接的发送API，需要通过ExecuteRequest机制
   Result := False;
-  if not FActive or (aMsg = nil) then
+  if not isActive or (aMsg = nil) then
     Exit;
 
   // 需要特定的实现来处理

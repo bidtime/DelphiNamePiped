@@ -26,7 +26,6 @@ uses
   TBUNP_ClientPipe in 'src\TBUNP_ClientPipe.pas',
   {$ENDIF}
   {$IFDEF USE_SIMPLE_PIPES}
-  AuxTypes in 'src\SimplePipe\Components\AuxTypes.pas',
   SimplePipes in 'src\SimplePipe\Components\SimplePipes.pas',
   TBUNP_ServerPipe in 'src\SimplePipe\TBUNP_ServerPipe.pas',
   TBUNP_ClientPipe in 'src\\SimplePipe\TBUNP_ClientPipe.pas',

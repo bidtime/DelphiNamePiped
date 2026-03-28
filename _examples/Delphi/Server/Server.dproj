@@ -128,7 +128,8 @@
             <Form>Form1</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="..\..\..\_wrappers\TBUNamedPipe.pas"/>
+        <DCCReference Include="..\Public\uFormIniFiles.pas"/>
+        <DCCReference Include="..\..\..\_wrappers\TBUNamedServerPipe.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

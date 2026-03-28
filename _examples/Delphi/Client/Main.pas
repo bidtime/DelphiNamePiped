@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, TBUNamedPipe;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, TBUNamedClientPipe;
 
 type
   TForm2 = class(TForm)
@@ -15,14 +15,17 @@ type
     Button1: TButton;
     Button3: TButton;
     Button2: TButton;
+    edtPipeName: TEdit;
+    cbAuto: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     FConnected: Boolean;
     procedure SetButtons;
+    function readWriteIni(const bWrite: boolean): boolean;
   public
     procedure OnDisconnect(aPipe: Cardinal); stdcall;
     procedure OnError(aPipe: Cardinal; aPipeContext: ShortInt; aErrorCode: Integer); stdcall;
@@ -34,6 +37,8 @@ var
   Form2: TForm2;
 
 implementation
+
+uses uFormIniFiles;
 
 {$R *.dfm}
 
@@ -64,7 +69,7 @@ end;
 
 procedure TForm2.Button3Click(Sender: TObject);
 begin
-  FConnected := PipeClientConnect;
+  FConnected := PipeClientConnectNamed(PWideChar(self.edtPipeName.Text));
 
   if FConnected then
     Memo1.Lines.Add('<< Pipe client connected.')
@@ -74,21 +79,25 @@ begin
   SetButtons;
 end;
 
-procedure TForm2.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  PipeClientDestroy;
-  Inherited;
-end;
-
 procedure TForm2.FormCreate(Sender: TObject);
 begin
   Inherited;
+  self.readWriteIni(false);
   SetButtons;
   PipeClientInitialize;
   RegisterOnPipeClientDisconnectCallback(OnDisconnect);
   RegisterOnPipeClientErrorCallback(OnError);
   RegisterOnPipeClientMessageCallback(OnMessage);
   RegisterOnPipeClientSentCallback(OnSent);
+  if self.cbAuto.Checked then begin
+    Button3Click(Button3);
+  end;
+end;
+
+procedure TForm2.FormDestroy(Sender: TObject);
+begin
+  self.readWriteIni(true);
+  PipeClientDestroy;
 end;
 
 procedure TForm2.OnDisconnect(aPipe: Cardinal); stdcall;
@@ -116,6 +125,17 @@ procedure TForm2.OnSent(aPipe: Cardinal; aSize: Cardinal); stdcall;
 begin
   Memo1.Lines.Add('>> Pipe (' + IntToStr(aPipe) +
                   ') received our message with a length of (' + IntToStr(aPipe) + ').');
+end;
+
+function TForm2.readWriteIni(const bWrite: boolean): boolean;
+begin
+  if not bWrite then begin
+    TFormIniFiles.LoadAllContainers(self);
+    Result := true;
+  end else begin
+    TFormIniFiles.SaveAllContainers(self);
+    Result := true;
+  end;
 end;
 
 end.

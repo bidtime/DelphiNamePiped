@@ -124,11 +124,11 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\Public\uFormIniFiles.pas"/>
         <DCCReference Include="Main.pas">
             <Form>Form2</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="..\..\..\_wrappers\TBUNamedPipe.pas"/>
+        <DCCReference Include="..\..\..\_wrappers\TBUNamedClientPipe.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

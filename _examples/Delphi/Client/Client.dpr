@@ -2,8 +2,9 @@ program Client;
 
 uses
   Vcl.Forms,
+  uFormIniFiles in '..\Public\uFormIniFiles.pas',
   Main in 'Main.pas' {Form2},
-  TBUNamedPipe in '..\..\..\_wrappers\TBUNamedPipe.pas';
+  TBUNamedClientPipe in '..\..\..\_wrappers\TBUNamedClientPipe.pas';
 
 {$R *.res}
 

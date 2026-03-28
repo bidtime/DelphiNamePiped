@@ -10,13 +10,11 @@ object Form2: TForm2
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
-  OnClose = FormClose
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     635
     350)
-  PixelsPerInch = 96
   TextHeight = 13
   object Label2: TLabel
     Left = 8
@@ -80,5 +78,21 @@ object Form2: TForm2
     Caption = 'Disconnect'
     TabOrder = 4
     OnClick = Button2Click
+  end
+  object edtPipeName: TEdit
+    Left = 224
+    Top = 12
+    Width = 121
+    Height = 21
+    TabOrder = 5
+    Text = 'MyPublicPipe'
+  end
+  object cbAuto: TCheckBox
+    Left = 360
+    Top = 13
+    Width = 57
+    Height = 17
+    Caption = 'cbAuto'
+    TabOrder = 6
   end
 end

@@ -4,6 +4,7 @@ interface
 
 uses
   SysUtils, Classes,
+  TBUNP_CommonTypes,
   TBUNP_ServerTypes,
   SimplePipes,
   TBUNP_Utils;
