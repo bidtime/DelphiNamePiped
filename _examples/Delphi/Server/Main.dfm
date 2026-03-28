@@ -2,8 +2,8 @@ object Form1: TForm1
   Left = 0
   Top = 0
   Caption = 'Delphi Server'
-  ClientHeight = 350
-  ClientWidth = 635
+  ClientHeight = 450
+  ClientWidth = 659
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,87 +12,138 @@ object Form1: TForm1
   Font.Style = []
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  DesignSize = (
-    635
-    350)
   TextHeight = 13
-  object Label1: TLabel
-    Left = 8
-    Top = 322
-    Width = 97
-    Height = 13
-    Anchors = [akLeft, akBottom]
-    Caption = 'Broadcast Message:'
-  end
-  object Label2: TLabel
-    Left = 8
-    Top = 20
-    Width = 21
-    Height = 13
-    Anchors = [akLeft, akBottom]
-    Caption = 'Log:'
-  end
-  object Button1: TButton
-    Left = 552
-    Top = 317
-    Width = 75
-    Height = 25
-    Anchors = [akRight, akBottom]
-    Caption = 'Send'
-    TabOrder = 0
-    OnClick = Button1Click
-  end
-  object Edit1: TEdit
-    Left = 111
-    Top = 319
-    Width = 435
-    Height = 21
-    Anchors = [akLeft, akRight, akBottom]
-    TabOrder = 1
-  end
-  object Memo1: TMemo
-    Left = 8
-    Top = 39
-    Width = 619
-    Height = 272
-    Anchors = [akLeft, akTop, akRight, akBottom]
+  object memoLog: TMemo
+    Left = 0
+    Top = 23
+    Width = 659
+    Height = 378
+    Align = alClient
     ReadOnly = True
+    ScrollBars = ssBoth
+    TabOrder = 0
+  end
+  object ToolBar1: TToolBar
+    Left = 0
+    Top = 0
+    Width = 659
+    Height = 23
+    ButtonHeight = 21
+    Caption = 'ToolBar1'
+    TabOrder = 1
+    DesignSize = (
+      659
+      23)
+    object ToolButton1: TToolButton
+      Left = 0
+      Top = 0
+      Width = 8
+      Caption = 'ToolButton1'
+      Style = tbsSeparator
+    end
+    object btnClear: TButton
+      Left = 8
+      Top = 0
+      Width = 75
+      Height = 21
+      Caption = 'Clear'
+      TabOrder = 0
+      OnClick = btnClearClick
+    end
+    object chkBreak: TCheckBox
+      Left = 83
+      Top = 0
+      Width = 35
+      Height = 21
+      Caption = 'bk'
+      TabOrder = 5
+    end
+    object edDelay: TEdit
+      Left = 118
+      Top = 0
+      Width = 19
+      Height = 21
+      TabOrder = 7
+      Text = '0'
+    end
+    object btnDoLoop: TButton
+      Left = 137
+      Top = 0
+      Width = 75
+      Height = 21
+      Caption = 'DoLoop'
+      TabOrder = 1
+      OnClick = btnDoLoopClick
+    end
+    object cbAuto: TCheckBox
+      Left = 212
+      Top = 0
+      Width = 57
+      Height = 21
+      Caption = 'cbAuto'
+      TabOrder = 4
+    end
+    object edtPipeName: TEdit
+      Left = 269
+      Top = 0
+      Width = 121
+      Height = 21
+      TabOrder = 6
+      Text = 'MyPublicPipe'
+    end
+    object Button3: TButton
+      Left = 390
+      Top = 0
+      Width = 75
+      Height = 21
+      Anchors = [akTop, akRight]
+      Caption = 'Start Server'
+      TabOrder = 3
+      OnClick = Button3Click
+    end
+    object Button2: TButton
+      Left = 465
+      Top = 0
+      Width = 75
+      Height = 21
+      Anchors = [akTop, akRight]
+      Caption = 'Stop Server'
+      TabOrder = 2
+      OnClick = Button2Click
+    end
+  end
+  object GroupBox1: TGroupBox
+    Left = 0
+    Top = 401
+    Width = 659
+    Height = 49
+    Align = alBottom
+    Caption = 'Message:'
     TabOrder = 2
-  end
-  object Button2: TButton
-    Left = 552
-    Top = 8
-    Width = 75
-    Height = 25
-    Anchors = [akTop, akRight]
-    Caption = 'Stop Server'
-    TabOrder = 3
-    OnClick = Button2Click
-  end
-  object Button3: TButton
-    Left = 463
-    Top = 8
-    Width = 75
-    Height = 25
-    Anchors = [akTop, akRight]
-    Caption = 'Start Server'
-    TabOrder = 4
-    OnClick = Button3Click
-  end
-  object edtPipeName: TEdit
-    Left = 224
-    Top = 12
-    Width = 121
-    Height = 21
-    TabOrder = 5
-    Text = 'MyPublicPipe'
-  end
-  object cbAuto: TCheckBox
-    Left = 360
-    Top = 13
-    Width = 57
-    Height = 17
-    Caption = 'cbAuto'
-    TabOrder = 6
+    ExplicitLeft = 8
+    ExplicitTop = 232
+    ExplicitWidth = 609
+    DesignSize = (
+      659
+      49)
+    object edtText: TEdit
+      Left = 14
+      Top = 18
+      Width = 547
+      Height = 21
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      TabOrder = 0
+      Text = #26469#33258#26381#21153#22120#28040#24687
+    end
+    object Button1: TButton
+      Left = 575
+      Top = 16
+      Width = 75
+      Height = 25
+      Anchors = [akRight, akBottom]
+      Caption = 'Send'
+      TabOrder = 1
+      OnClick = Button1Click
+    end
   end
 end
